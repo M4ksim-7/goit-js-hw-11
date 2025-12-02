@@ -1,67 +1,54 @@
-// main.js
-import { getImagesByQuery } from './js/pixabay-api.js';
+import { getImagesByQuery } from './js/pixabay-api';
 import {
   createGallery,
   clearGallery,
   showLoader,
   hideLoader,
-} from './js/render-function.js';
+} from './js/render-function';
 
 import iziToast from 'izitoast';
 import 'izitoast/dist/css/iziToast.min.css';
 
-const form = document.getElementById('search-form');
-const input = document.getElementById('search-text');
+const form = document.querySelector('.search-form');
+const input = document.querySelector('.search-input');
 
-form.addEventListener('submit', onSearch);
-
-function onSearch(event) {
+form.addEventListener('submit', event => {
   event.preventDefault();
 
   const query = input.value.trim();
 
-  if (query === '') {
-    iziToast.error({
-      title: 'Error',
-      message: 'Please enter a search query.',
-      position: 'topRight',
+  if (!query) {
+    iziToast.warning({
+      message: 'Введи слово для пошуку 🟡',
+      timeout: 2000,
     });
     return;
   }
 
   clearGallery();
-
   showLoader();
 
   getImagesByQuery(query)
     .then(data => {
-      if (!data || !Array.isArray(data.hits) || data.hits.length === 0) {
-        iziToast.info({
-          title: 'No results',
-          message:
-            'Sorry, there are no images matching your search query. Please try again!',
-          position: 'topRight',
+      if (data.hits.length === 0) {
+        iziToast.error({
+          message: 'Нічого не знайдено 😢',
+          timeout: 3000,
         });
         return;
       }
 
       createGallery(data.hits);
-      iziToast.success({
-        title: 'Success',
-        message: `Found ${data.totalHits} images.`,
-        position: 'topRight',
-      });
     })
-    .catch(error => {
-      console.error('Error while fetching images:', error);
+    .catch(() => {
       iziToast.error({
-        title: 'Request failed',
-        message:
-          'Something went wrong while fetching images. Please try again later.',
-        position: 'topRight',
+        message: 'Сталася помилка. Спробуй пізніше ⚠️',
+        timeout: 3000,
       });
     })
     .finally(() => {
       hideLoader();
     });
-}
+
+  form.reset();
+});
