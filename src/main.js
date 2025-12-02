@@ -1,26 +1,25 @@
-import { getImagesByQuery } from './js/pixabay-api';
+import { getImagesByQuery } from './js/pixabay-api.js';
 import {
   createGallery,
   clearGallery,
   showLoader,
   hideLoader,
-} from './js/render-function';
-
+} from './js/render-function.js';
 import iziToast from 'izitoast';
 import 'izitoast/dist/css/iziToast.min.css';
+// import 'loaders.css/loaders.css';
 
-const form = document.querySelector('.search-form');
-const input = document.querySelector('.search-input');
+const formEl = document.querySelector('.form');
+const inputEl = formEl.querySelector('input[name="search-text"]');
 
-form.addEventListener('submit', event => {
-  event.preventDefault();
-
-  const query = input.value.trim();
+formEl.addEventListener('submit', async e => {
+  e.preventDefault();
+  const query = inputEl.value.trim();
 
   if (!query) {
     iziToast.warning({
-      message: 'Введи слово для пошуку 🟡',
-      timeout: 2000,
+      title: 'Warning',
+      message: 'Please type something to search.',
     });
     return;
   }
@@ -28,27 +27,30 @@ form.addEventListener('submit', event => {
   clearGallery();
   showLoader();
 
-  getImagesByQuery(query)
-    .then(data => {
-      if (data.hits.length === 0) {
-        iziToast.error({
-          message: 'Нічого не знайдено 😢',
-          timeout: 3000,
-        });
-        return;
-      }
+  try {
+    const data = await getImagesByQuery(query);
 
-      createGallery(data.hits);
-    })
-    .catch(() => {
+    if (!data || !Array.isArray(data.hits) || data.hits.length === 0) {
       iziToast.error({
-        message: 'Сталася помилка. Спробуй пізніше ⚠️',
-        timeout: 3000,
+        title: 'No results',
+        message:
+          'Sorry, there are no images matching your search query. Please try again!',
       });
-    })
-    .finally(() => {
-      hideLoader();
-    });
+      return;
+    }
 
-  form.reset();
+    createGallery(data.hits);
+    iziToast.success({
+      title: 'Success',
+      message: `Found ${data.hits.length} images.`,
+    });
+  } catch (error) {
+    console.error(error);
+    iziToast.error({
+      title: 'Error',
+      message: 'Something went wrong. Please try again later.',
+    });
+  } finally {
+    hideLoader();
+  }
 });
